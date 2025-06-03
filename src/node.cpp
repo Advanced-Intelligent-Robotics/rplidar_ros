@@ -76,8 +76,7 @@ void publish_scan(ros::Publisher *pub,
       scan_msg.angle_min =  M_PI - angle_min;
       scan_msg.angle_max =  M_PI - angle_max;
     }
-    scan_msg.angle_increment =
-        (scan_msg.angle_max - scan_msg.angle_min) / (double)(node_count-1);
+    scan_msg.angle_increment = (scan_msg.angle_max - scan_msg.angle_min) / (double)(node_count-1);
 
     scan_msg.scan_time = scan_time;
     scan_msg.time_increment = scan_time / (double)(node_count-1);
@@ -87,26 +86,27 @@ void publish_scan(ros::Publisher *pub,
     scan_msg.intensities.resize(node_count);
     scan_msg.ranges.resize(node_count);
     bool reverse_data = (!inverted && reversed) || (inverted && !reversed);
-    if (!reverse_data) {
-        for (size_t i = 0; i < node_count; i++) {
-            float read_value = (float) nodes[i].dist_mm_q2/4.0f/1000;
-            if (read_value == 0.0)
-                scan_msg.ranges[i] = std::numeric_limits<float>::infinity();
-            else
-                scan_msg.ranges[i] = read_value;
-            scan_msg.intensities[i] = (float) (nodes[i].quality >> 2);
-        }
-    } else {
-        for (size_t i = 0; i < node_count; i++) {
-            float read_value = (float)nodes[i].dist_mm_q2/4.0f/1000;
-            if (read_value == 0.0)
-                scan_msg.ranges[node_count-1-i] = std::numeric_limits<float>::infinity();
-            else
-                scan_msg.ranges[node_count-1-i] = read_value;
-            scan_msg.intensities[node_count-1-i] = (float) (nodes[i].quality >> 2);
-        }
-    }
 
+    size_t scan_midpoint = node_count / 2;
+    for (size_t i = 0; i < node_count; i++) {
+        float read_value = (float)nodes[i].dist_mm_q2 / 4.0f / 1000;
+        size_t apply_index = i;
+        if (reverse_data) {
+            apply_index = node_count - 1 - i;
+        }
+        
+        if (apply_index >= scan_midpoint)
+            apply_index = apply_index - scan_midpoint;
+        else
+            apply_index = apply_index + scan_midpoint;
+        
+
+        if (read_value == 0.0)
+            scan_msg.ranges[apply_index] = std::numeric_limits<float>::infinity();
+        else
+            scan_msg.ranges[apply_index] = read_value;
+        scan_msg.intensities[apply_index] = (float)(nodes[apply_index].quality >> 2);
+    }
     pub->publish(scan_msg);
 }
 
@@ -410,7 +410,7 @@ int main(int argc, char * argv[]) {
             }
             op_result = drv->ascendScanData(nodes, count);
             float angle_min = DEG2RAD(0.0f);
-            float angle_max = DEG2RAD(360.0f);
+            float angle_max = DEG2RAD(359.0f);
             if (op_result == SL_RESULT_OK) {
                 if (angle_compensate) {
                     const int angle_compensate_nodes_count = 360*angle_compensate_multiple;
@@ -425,7 +425,6 @@ int main(int argc, char * argv[]) {
                             int angle_value = (int)(angle * angle_compensate_multiple);
                             if ((angle_value - angle_compensate_offset) < 0) angle_compensate_offset = angle_value;
                             for (j = 0; j < angle_compensate_multiple; j++) {
-
                                 int angle_compensate_nodes_index = angle_value-angle_compensate_offset+j;
                                 if(angle_compensate_nodes_index >= angle_compensate_nodes_count)
                                     angle_compensate_nodes_index = angle_compensate_nodes_count-1;
