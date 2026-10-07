@@ -12,12 +12,14 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     channel_type = LaunchConfiguration('channel_type', default='udp')
-    udp_ip = LaunchConfiguration('udp_ip', default='192.168.11.2')
+    udp_ip = LaunchConfiguration('udp_ip', default='192.168.88.5')
     udp_port = LaunchConfiguration('udp_port', default='8089') 
     frame_id = LaunchConfiguration('frame_id', default='laser')
     inverted = LaunchConfiguration('inverted', default='false')
     angle_compensate = LaunchConfiguration('angle_compensate', default='true')
     scan_mode = LaunchConfiguration('scan_mode', default='Sensitivity')
+    scan_frequency = LaunchConfiguration('scan_frequency', default='20.0')
+    flip_x_axis = LaunchConfiguration('flip_x_axis', default='true')
 
     rviz_config_dir = os.path.join(
             get_package_share_directory('rplidar_ros'),
@@ -61,6 +63,16 @@ def generate_launch_description():
             default_value=scan_mode,
             description='Specifying scan mode of lidar'),
 
+        DeclareLaunchArgument(
+            'scan_frequency',
+            default_value=scan_frequency,
+            description='Specifying scan frequency of lidar'),
+
+        DeclareLaunchArgument(
+            'flip_x_axis',
+            default_value=flip_x_axis,
+            description='Specifying whether or not to flip the x axis of scan data'),
+
         Node(
             package='rplidar_ros',
             executable='rplidar_node',
@@ -71,7 +83,9 @@ def generate_launch_description():
                          'frame_id': frame_id,
                          'inverted': inverted,
                          'angle_compensate': angle_compensate,
-                         'scan_mode': scan_mode}],
+                         'scan_mode': scan_mode,
+                         'scan_frequency': scan_frequency,
+                         'flip_x_axis': flip_x_axis}],
             output='screen'),
 
         Node(
